@@ -1,28 +1,25 @@
 # Label-Mask-tools
 
-#### Definitions:  
-  Masks contain one region represented by pixel values of 1 and 0 backgroud  
-  Label contain N>1 regions represented by pixel values ranging from 1 to N on 0 background  
+### Definitions:  
+* __Masks__ contain one region represented by pixel values of 1 and 0 backgroud  
+* __Label__ contain N>1 regions represented by pixel values ranging from 1 to N on 0 background  
 
-#### Tools:  
-  NIFTI_Label2Masks:  converts a Label file to several Masks files  
-  NIFTI_CombineMasks: combines several Mask files into a single Mask file  
-  NIFTI_Masks2Label:  converts several Mask files to a Label file  
-
+### Tools:  
+* __NIFTI_Label2Masks__:  converts a Label file to several Masks files  
+* __NIFTI_CombineMasks__: combines several Mask files into a single Mask file  
+* __NIFTI_Masks2Label__:  converts several Mask files to a Label file  
 <br/>
 
 You may test these tools with the data kindly provided by the  
 Laboratory for Rehabilitation Neuroscience at the University of Florida  
 available at http://lrnlab.org/  
-
 <br/>
     
 This software is intended to be used in FSL (https://fsl.fmrib.ox.ac.uk/fsl/fslwiki).  
 In order to be able to execute the tools in the Python environment provided by FSL  
 please install the NumPy, SciPy and NiBabel libaries with the command  
 "sudo /usr/local/fsl/fslpython/bin/pip install numpy scipy nibabel"  
-inside the FSL Virtual machine (tested on FSL 6.0.3)  
-  
+inside the FSL Virtual machine (tested on FSL 6.0.3)   
 <br/>
 
 If you have installed FSL in a non default home directory,  
