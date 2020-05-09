@@ -24,7 +24,7 @@ inside the FSL Virtual machine (tested on FSL 6.0.3)
 
 If you have installed FSL in a non default home directory,  
 or intend to use these tools in a different python environment,  
-please edit the first line of the Python files to reflect the correct  
+please edit the first line in the Python files to reflect the correct  
 location of your Python interpreter  
   
   
