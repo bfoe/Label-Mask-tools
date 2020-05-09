@@ -17,7 +17,7 @@ available at http://lrnlab.org/
     
 These tools are intended to be used in __FSL__ (https://fsl.fmrib.ox.ac.uk/fsl/fslwiki).  
 In order to be able to execute the tools in the Python environment provided by FSL  
-please install the NumPy, SciPy and NiBabel libaries with the command  
+__please install__ the NumPy, SciPy and NiBabel libaries with the command  
 __sudo /usr/local/fsl/fslpython/bin/pip install numpy scipy nibabel__  
 inside the FSL Virtual machine (tested on FSL 6.0.3)   
 <br/>
