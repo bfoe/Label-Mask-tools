@@ -113,9 +113,13 @@ img0 = nib.load(FIDfile[0])
 data0 = np.asanyarray(img0.dataobj).astype(np.float32)
 #sanity check data0
 if not np.array_equal(np.unique(data0), np.asarray([0,1])):
-   print ("Warning: Mask contains values!=[0,1], trying to fix")
-   logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")
-   data0[data0>0]=1; data0[data0<0]=0
+   if np.unique(data0).shape[0]!=2: # more than two values present
+      print ("Error: Mask contains more then two different values")
+      sys.exit(2)
+   else:   
+      print ("Warning: Mask contains values!=[0,1], trying to fix")
+      logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")
+      data0[data0==np.min(np.unique(data0))]=0; data0[data0==np.max(np.unique(data0))]=1
 #go
 for i in range (1,nfiles):
     logfile.write(str(i+1)+") "+FIDfile[i]+'\n')
@@ -130,9 +134,13 @@ for i in range (1,nfiles):
        sys.exit(2)      
     #sanity check data   
     if not np.array_equal(np.unique(data), np.asarray([0,1])):
-       print ("Warning: Mask contains values!=[0,1], trying to fix")
-       logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")       
-       data[data>0]=1; data[data<0]=0
+       if np.unique(data).shape[0]!=2: # more than two values present
+          print ("Error: Mask contains more then two different values")
+          sys.exit(2)
+       else:   
+          print ("Warning: Mask contains values!=[0,1], trying to fix")
+          logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")
+          data[data==np.min(np.unique(data))]=0; data[data==np.max(np.unique(data))]=1
     nonzero  = np.nonzero(data)
     #check for overlaping masks
     if not np.array_equal(np.unique(data0[nonzero]), np.asarray([0])):
