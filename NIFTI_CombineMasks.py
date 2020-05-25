@@ -1,7 +1,7 @@
 #!/usr/local/fsl/fslpython/bin/python3
 #
 # reads N mask NIFTI files (should contain only 0 and 1)
-# and merges these to one Label file containing 0..N
+# and combines these to one Mask file containing ( also containing only 0 and 1)
 #
 # ----- VERSION HISTORY -----
 #
