@@ -44,7 +44,6 @@ import os
 import numpy as np
 from scipy.ndimage import label
 from scipy.ndimage import binary_opening
-from scipy.ndimage.morphology import binary_dilation
 import nibabel as nib
 
 
