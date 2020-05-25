@@ -44,7 +44,7 @@ import os
 import numpy as np
 from scipy.ndimage import label
 from scipy.ndimage import binary_opening
-#from scipy.ndimage.morphology import binary_dilation
+from scipy.ndimage.morphology import binary_dilation
 import nibabel as nib
 
 
@@ -66,8 +66,6 @@ if not TK_installed:
     
     
 #general initialization stuff  
-space=' '; slash='/'; 
-if sys.platform=="win32": slash='\\' # not really needed, but looks nicer ;)
 Program_name = os.path.basename(sys.argv[0]); 
 if Program_name.find('.')>0: Program_name = Program_name[:Program_name.find('.')]
 python_version=str(sys.version_info[0])+'.'+str(sys.version_info[1])+'.'+str(sys.version_info[2])
@@ -115,26 +113,25 @@ for i in range (0,nfiles):
       data[data<labels[i]]=0
       data[data==labels[i]]=1
       j+=1
-      print ("Creating Mask "+str(j)+", ", end="")
-      #filter mask (eliminate isolated points, from innterpolation)
-      print ("Finding largest connected, ", end="")
+      print ("Creating Mask "+str(j)+" with value "+str(labels[i])+", ", end="")
       labeled_data, num_clusters = label(data)
       unique, counts = np.unique(labeled_data, return_counts=True)
-      max_count=0
-      for k in range(0,unique.shape[0]): # find the largest nonzero count
-         if counts[k]>max_count and unique[k]!=0: max_count=counts[k]
-      remove_labels = unique[np.where(counts<max_count)] # leave only the largest cluster of connected points
-      remove_indices = np.where(np.isin(labeled_data,remove_labels))
-      data[remove_indices] = 0
-      #filter mask (opening filter)
-      print ("opening filter, ", end="")
-      data = binary_opening(data).astype(np.int16)
-      #filter mask (dilating)  not good, this can result in overlaping Masks
-      #print ("dilation filter, ", end="")
-      #data = binary_dilation(data).astype(np.int16)      
-      #filter mask END
+      if (unique.shape[0])>2: #filtering required
+         # remove isolated clusters
+         print ("removing isolated, ", end="")
+         max_count=0
+         for k in range(0,unique.shape[0]): # find the largest nonzero count
+            if counts[k]>max_count and unique[k]!=0: max_count=counts[k]
+         remove_labels = unique[np.where(counts<max_count)] # leave only the largest cluster of connected points
+         remove_indices = np.where(np.isin(labeled_data,remove_labels))
+         data[remove_indices] = 0
+         #filter mask (opening filter)
+         print ("opening filter, ", end="")
+         data = binary_opening(data, iterations=2).astype(np.int16)
       if np.max(data)==0:
           print ("zero result")
+      elif data[data>0].flatten().shape[0]<4:
+          print ("too few points: ", data[data>0].flatten().shape[0])            
       else:            
           print ("saving")
           affine = img0.affine
@@ -156,7 +153,7 @@ for i in range (0,nfiles):
           img_SoS.header['scl_inter']=0
           img_SoS.header['glmax']=np.max(data)
           img_SoS.header['glmin']=np.min(data)
-          nib.save(img_SoS, dirname+slash+basename+"_MASK_"+str(labels[i]))   
+          nib.save(img_SoS, os.path.join(dirname,basename+"_MASK_"+str(labels[i])))   
 print ("done\n")  
      
 #end
