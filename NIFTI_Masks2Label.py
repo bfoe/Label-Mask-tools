@@ -42,7 +42,7 @@ import sys
 import os
 import numpy as np
 import nibabel as nib
-
+import logging
 
 TK_installed=True
 try: from tkFileDialog import askopenfilename # Python 2
@@ -59,11 +59,48 @@ if not TK_installed:
     print ('       on MacOS install ActiveTcl from:')
     print ('       http://www.activestate.com/activetcl/downloads')
     sys.exit(2)
+
     
-    
+def ReadNIFTI(NIFTIfile,logfilename,error_handling): #error_handling = "abort", "warn", "ignore"
+  if error_handling == "ignore": logging.basicConfig(filename=os.devnull)
+  else: logging.basicConfig(filename=logfilename)
+  if error_handling == "abort": # -----> abort on warning/error write msg to screen/logfile
+    nib.imageglobals.error_level = 30  #rise an error
+    try:   
+      with nib.imageglobals.LoggingOutputSuppressor(): # supresss onscreen message
+        return nib.load(NIFTIfile)
+    except Exception as err: 
+      print ("Error reading NIFTI file: "+str(err)) # custom handle error message
+      log.write ("Operation aborted\n"); log.flush() 
+      sys.exit(2)
+  elif error_handling == "warn": # -----> continue on warning/error write msg to screen/logfile
+    try: return nib.load(NIFTIfile)
+    except Exception as err: 
+      print ("Error reading NIFTI file:", err);
+      sys.exit(2)
+  elif error_handling == "ignore": # -----> continue silently
+      with nib.imageglobals.LoggingOutputSuppressor(): # supresss onscreen message
+        return nib.load(NIFTIfile)
+  else: print ("Unknown error handling mode", error_handling); sys.exit(0) 
+  
+  
+#sanity check/correct Mask data
+def SantitizeMask (data):
+   if not np.array_equal(np.unique(data), np.asarray([0,1])):
+      if np.unique(data).shape[0]!=2: # more than two values present
+         data[data<0] = 0
+         thresh = np.average (data[data>0])        
+         print ("Warning: Mask contains more then two different values, trying to fix")
+         log.write("Warning: Mask contains more then two different values, trying to fix\n"); log.flush()
+         data[data<=thresh]=0; data[data>thresh]=1          
+      else: # only two values present, easily corrected  
+         print ("Warning: Mask contains values!=[0,1], trying to fix")
+         log.write("Warning: Mask contains values!=[0,1], trying to fix\n"); log.flush()
+         data[data==np.min(np.unique(data))]=0; data[data==np.max(np.unique(data))]=1 
+   return data
+
+   
 #general initialization stuff  
-space=' '; slash='/'; 
-if sys.platform=="win32": slash='\\' # not really needed, but looks nicer ;)
 Program_name = os.path.basename(sys.argv[0]); 
 if Program_name.find('.')>0: Program_name = Program_name[:Program_name.find('.')]
 python_version=str(sys.version_info[0])+'.'+str(sys.version_info[1])+'.'+str(sys.version_info[2])
@@ -102,55 +139,41 @@ except: pass #silent
 
 new_dirname = os.path.abspath(os.path.dirname(FIDfile[0]))
 new_filename = 'Label.nii'
-logfile = open(new_dirname+slash+'Label.log', "w")
-logfile.write('Label file created from mask files:\n')
-logfile.write("1) "+FIDfile[0]+'\n')
+logfilename = os.path.join(new_dirname,'Label.log')
+try: os.remove(logfilename)
+except: pass
+log = open(logfilename, "a")
 
-print ('Reading file 1')
-img0 = nib.load(FIDfile[0])
+# start doing something
+log.write('Label file created from mask files:\n'); log.flush()
+log.write("1) "+FIDfile[0]+'\n'); log.flush()
+print ('Reading file 1: '+str(os.path.basename(FIDfile[0])))
+img0 = ReadNIFTI(FIDfile[0], logfilename, "warn")
 data0 = np.asanyarray(img0.dataobj).astype(np.float32)
-#sanity check data0
-if not np.array_equal(np.unique(data0), np.asarray([0,1])):
-   if np.unique(data0).shape[0]!=2: # more than two values present
-      print ("Error: Mask contains more then two different values")
-      sys.exit(2)
-   else:   
-      print ("Warning: Mask contains values!=[0,1], trying to fix")
-      logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")
-      data0[data0==np.min(np.unique(data0))]=0; data0[data0==np.max(np.unique(data0))]=1
+data0 = SantitizeMask (data0)
 #go
 for i in range (1,nfiles):
-    logfile.write(str(i+1)+") "+FIDfile[i]+'\n')
-    print ('Reading file',i+1)
-    img = nib.load(FIDfile[i])
-    if img.shape != img0.shape: print ('ERROR: incompatible file dimensions'); sys.exit(2)
+    log.write(str(i+1)+") "+FIDfile[i]+'\n'); log.flush()
+    print ('Reading file '+str(i+1)+": "+str(os.path.basename(FIDfile[i])))
+    img = ReadNIFTI(FIDfile[i], logfilename, "warn")
     data = np.asanyarray(img.dataobj).astype(np.float32)
     #verify if dimensions are equal
     if data.shape != data0.shape:
        print ("ERROR: Mask file has different dimensions, aborting")
-       logfile.write("ERROR: Mask file has different dimensions, aborting\n")
+       log.write("ERROR: Mask file has different dimensions, aborting\n"); log.flush()
        sys.exit(2)      
-    #sanity check data   
-    if not np.array_equal(np.unique(data), np.asarray([0,1])):
-       if np.unique(data).shape[0]!=2: # more than two values present
-          print ("Error: Mask contains more then two different values")
-          sys.exit(2)
-       else:   
-          print ("Warning: Mask contains values!=[0,1], trying to fix")
-          logfile.write("Warning: Mask contains values!=[0,1], trying to fix\n")
-          data[data==np.min(np.unique(data))]=0; data[data==np.max(np.unique(data))]=1
+    data = SantitizeMask (data)
+    #check for overlaping masks    
     nonzero  = np.nonzero(data)
-    #check for overlaping masks
     if not np.array_equal(np.unique(data0[nonzero]), np.asarray([0])):
        print ("Warning: Mask overlap detected, overwriting previous values") 
-       logfile.write("Warning: Mask overlap detected, overwriting previous values\n")        
-    #data0[nonzero] = (i+1)*data[nonzero] #masks contain only 0 and 1 so we don't actually need this
+       log.write("Warning: Mask overlap detected, overwriting previous values\n"); log.flush()       
     data0[nonzero] = (i+1)
 #sanity check result
 expected = np.linspace(0,nfiles,nfiles+1, endpoint=True)
 if not np.array_equal(np.unique(data0), expected):
     print ("Warning: Resulting file Label.nii contains unexpected values, please check carefully") 
-    logfile.write("Warning: Mask overlap detected, overwriting previous values\n")
+    log.write("Warning: Resulting file Label.nii contains unexpected values, please check carefully\n"); log.flush()
 data0 = data0.astype(np.int16)
 
 print ("Saving results")
@@ -173,8 +196,8 @@ img_SoS.header['scl_slope']=1
 img_SoS.header['scl_inter']=0
 img_SoS.header['glmax']=np.max(data0)
 img_SoS.header['glmin']=np.min(data0)
-nib.save(img_SoS, new_dirname+slash+new_filename)   
-logfile.close()
+nib.save(img_SoS, os.path.join(new_dirname,new_filename))   
+log.close()
 print ("done\n")  
      
 #end
